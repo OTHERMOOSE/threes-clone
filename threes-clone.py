@@ -36,7 +36,7 @@ TWO = -2
 ONE = -1
 
 def main():
-        global FPSCLOCK, DISPLAYSURF, FONT
+        global FPSCLOCK, DISPLAYSURF, FONT, nextNum
         pygame.init()
         FPSCLOCK = pygame.time.Clock()
         DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
@@ -46,9 +46,13 @@ def main():
 
         DISPLAYSURF.fill(BGCOLOUR)
 
+        nextNum = randomTile(mainBoard)
+
         while True: # main loop
                 DISPLAYSURF.fill(BGCOLOUR)
                 drawBoard(mainBoard)
+                drawNext()
+
                 for event in pygame.event.get():
                         if event.type == QUIT or (event.type == KEYUP and (event.key == K_ESCAPE or event.key == K_q)):
                                 pygame.quit()
@@ -110,6 +114,17 @@ def drawNum(number, x, y): # draws the numbers on the tiles
         rect.center = (x, y)
         DISPLAYSURF.blit(surface, rect)
 
+def drawNext(): # draws the next number coming
+        global nextNum
+        if nextNum > 0:
+                number = 3 * (2 ** (nextNum - 1))
+        else:
+                number = -nextNum
+        surface = FONT.render("Next: " + str(number), True, WHITE)
+        rect = surface.get_rect()
+        rect.topleft = (10, YMARGIN)
+        DISPLAYSURF.blit(surface, rect)
+
 def getTopLeftCorner(tilex, tiley): # gets pixel coords of tile in specified row and column
         x = tilex * (TILEWIDTH + GAPSIZE) + XMARGIN
         y = tiley * (TILEHEIGHT + GAPSIZE) + YMARGIN
@@ -154,13 +169,14 @@ def slideBoard(board, direction): # slides the tiles up
                         elif moveValidity == 0: # valid move, moving into empty space
                                 board[targetTilex][targetTiley] = board[tilex][tiley]
                                 board[tilex][tiley] = 0
-
+        if len(moved) > 0:
+                moved.append(addNewTile(board, moved, direction))
         animate(board, moved, direction)
-        addNewTile(board, moved, direction)
 
 def animate(board, moved, direction):
         xOffset = 0
         yOffset = 0
+
         if direction == 'up' or direction == 'down':
                 end = TILEHEIGHT                        
         elif direction == 'left' or direction == 'right':
@@ -183,7 +199,8 @@ def animate(board, moved, direction):
                         elif direction == "right":
                                 xOffset = offset
                         pygame.draw.rect(DISPLAYSURF, DARKGRAY, (left - GAPSIZE, top - GAPSIZE, TILEWIDTH + GAPSIZE * 2, TILEHEIGHT + GAPSIZE * 2)) # draw first the dark gray background (margin area)
-                        pygame.draw.rect(DISPLAYSURF, LIGHTGRAY, (left, top, TILEWIDTH, TILEHEIGHT)) # draw second the blank tile background
+                        if moved.index(tile) != len(moved) - 1: # if this is the last thing to move, its the new tile
+                                pygame.draw.rect(DISPLAYSURF, LIGHTGRAY, (left, top, TILEWIDTH, TILEHEIGHT)) # draw second the blank tile background
                         pygame.draw.rect(DISPLAYSURF, tileColour, (left + xOffset, top + yOffset, TILEWIDTH, TILEHEIGHT)) # now draw the moved tile
                         drawNum(tile[2], (left + left + TILEWIDTH) / 2 + xOffset, (top + top + TILEHEIGHT) / 2 + yOffset) # tile[2] = number that we saved in slideBoard
                 pygame.display.update()
@@ -193,21 +210,29 @@ def animate(board, moved, direction):
 
 
 def addNewTile(board, moved, direction):
-        if len(moved) > 0:
-                tile = random.choice(moved)
-                if direction == 'up':
-                        tilex = tile[0]
-                        tiley = 3
-                elif direction == 'left':
-                        tilex = 3
-                        tiley = tile[1]
-                elif direction == 'down':
-                        tilex = tile[0]
-                        tiley = 0
-                elif direction == 'right':
-                        tilex = 0
-                        tiley = tile[1]
-                board[tilex][tiley] = randomTile(board)
+        global nextNum
+        oldNum = nextNum
+        tile = random.choice(moved)
+        if direction == 'up':
+                tilex = tile[0]
+                tiley = 4
+                board[tilex][3] = nextNum
+        elif direction == 'left':
+                tilex = 4
+                tiley = tile[1]
+                board[3][tiley] = nextNum
+        elif direction == 'down':
+                tilex = tile[0]
+                tiley = -1
+                board[tilex][0] = nextNum
+        elif direction == 'right':
+                tilex = -1
+                tiley = tile[1]
+                board[0][tiley] = nextNum
+        nextNum = randomTile(board)
+        return (tilex, tiley, oldNum)
+
+
                                 
 def randomTile(board):
         choices = [ONE,TWO,THREE,THREE]
