@@ -6,14 +6,16 @@ from pygame.locals import *
 
 FPS = 60
 WINDOWWIDTH = 640
-WINDOWHEIGHT = 480
+WINDOWHEIGHT = 640
 TILEHEIGHT = 80 
 TILEWIDTH = 60
 GAPSIZE = 20 # size of gaps between tiles
 BOARDSIZE = 4 # how many rows and columns are there
 
 XMARGIN = int((WINDOWWIDTH - (BOARDSIZE * (TILEWIDTH + GAPSIZE))) / 2)
-YMARGIN = int((WINDOWHEIGHT - (BOARDSIZE * (TILEHEIGHT + GAPSIZE))) / 2)
+YMARGIN = int((WINDOWHEIGHT - ((BOARDSIZE + 1) * (TILEHEIGHT + GAPSIZE))) / 2)
+
+BOARDWIDTH = TILEWIDTH * BOARDSIZE + GAPSIZE * (BOARDSIZE - 1)
 
 DARKGRAY = (40,40,40)
 LIGHTGRAY = (50,50,50)
@@ -29,7 +31,7 @@ TILECOLOUR = WHITE
 ONECOLOUR = BLUE
 TWOCOLOUR = RED
 
-ANIMATESPEED = 5 # pixels per frame
+ANIMATESPEED = 10 # pixels per frame
 
 THREE = 1
 TWO = -2
@@ -120,14 +122,17 @@ def drawNext(): # draws the next number coming
                 number = 3 * (2 ** (nextNum - 1))
         else:
                 number = -nextNum
-        surface = FONT.render("Next: " + str(number), True, WHITE)
-        rect = surface.get_rect()
-        rect.topleft = (10, YMARGIN)
-        DISPLAYSURF.blit(surface, rect)
+                
+        if nextNum == ONE:
+                pygame.draw.rect(DISPLAYSURF, ONECOLOUR, (XMARGIN, YMARGIN, BOARDWIDTH, TILEHEIGHT / 2))
+        elif nextNum == TWO: 
+                pygame.draw.rect(DISPLAYSURF, TWOCOLOUR, (XMARGIN, YMARGIN, BOARDWIDTH, TILEHEIGHT / 2))
+        else:
+                pygame.draw.rect(DISPLAYSURF, TILECOLOUR, (XMARGIN, YMARGIN, BOARDWIDTH, TILEHEIGHT / 2))
 
 def getTopLeftCorner(tilex, tiley): # gets pixel coords of tile in specified row and column
         x = tilex * (TILEWIDTH + GAPSIZE) + XMARGIN
-        y = tiley * (TILEHEIGHT + GAPSIZE) + YMARGIN
+        y = (tiley + 1) * (TILEHEIGHT + GAPSIZE) + YMARGIN
         return x, y
 
 def slideBoard(board, direction): # slides the tiles up
@@ -198,11 +203,12 @@ def animate(board, moved, direction):
                                 yOffset = offset
                         elif direction == "right":
                                 xOffset = offset
-                        pygame.draw.rect(DISPLAYSURF, DARKGRAY, (left - GAPSIZE, top - GAPSIZE, TILEWIDTH + GAPSIZE * 2, TILEHEIGHT + GAPSIZE * 2)) # draw first the dark gray background (margin area)
+                        pygame.draw.rect(DISPLAYSURF, BGCOLOUR, (left - GAPSIZE, top - GAPSIZE, TILEWIDTH + GAPSIZE * 2, TILEHEIGHT + GAPSIZE * 2)) # draw first the dark gray background (margin area)
                         if moved.index(tile) != len(moved) - 1: # if this is the last thing to move, its the new tile
-                                pygame.draw.rect(DISPLAYSURF, LIGHTGRAY, (left, top, TILEWIDTH, TILEHEIGHT)) # draw second the blank tile background
+                                pygame.draw.rect(DISPLAYSURF, EMPTYTILECOLOUR, (left, top, TILEWIDTH, TILEHEIGHT)) # draw second the blank tile background
                         pygame.draw.rect(DISPLAYSURF, tileColour, (left + xOffset, top + yOffset, TILEWIDTH, TILEHEIGHT)) # now draw the moved tile
                         drawNum(tile[2], (left + left + TILEWIDTH) / 2 + xOffset, (top + top + TILEHEIGHT) / 2 + yOffset) # tile[2] = number that we saved in slideBoard
+                drawNext()
                 pygame.display.update()
                 FPSCLOCK.tick(FPS)
         pygame.event.clear() # makes it so that you can't stack movements while animation is happening
